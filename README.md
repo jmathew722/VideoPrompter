@@ -20,6 +20,7 @@ Then open the printed URL and drop a PDF onto the page.
 | ------------------- | -------------------------------------------------- |
 | `npm run dev`       | Dev server with hot reload                          |
 | `npm run build`     | Typecheck and build to `dist/`                      |
+| `npm run build:single` | Bundle everything into one HTML file             |
 | `npm run preview`   | Serve the production build locally                  |
 | `npm run typecheck` | TypeScript only                                     |
 | `npm run lint`      | oxlint                                              |
@@ -97,6 +98,16 @@ Speed comes from the measured pixel height of the script divided by its word
 count, scaled by WPM — every word gets the same screen time regardless of
 window size, and changing speed mid-read takes effect on the next frame. When
 the layout reflows, the reader's place is preserved proportionally.
+
+## One-file build
+
+`npm run build:single` writes `dist-single/pdf-teleprompter.html` — the whole
+app, about 1.9 MB, with no sibling assets. Open it straight from disk or host it
+anywhere that serves a single page. The PDF.js worker is inlined and started
+from a blob URL rather than fetched, which is what makes this possible.
+
+The trade-off is CMaps: they are left out, so PDFs relying on a predefined Adobe
+CMap (most CJK documents) will not extract. Use the normal build for those.
 
 ## Tests
 

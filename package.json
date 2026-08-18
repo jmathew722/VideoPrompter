@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "npm run assets && vite",
     "build": "npm run assets && tsc -b && vite build",
+    "build:single": "node scripts/build-single.mjs",
     "assets": "node scripts/copy-pdf-assets.mjs",
     "lint": "oxlint",
     "typecheck": "tsc -b",
