@@ -348,6 +348,62 @@ async function run() {
     check('no uncaught page errors', pageErrors.length === 0, pageErrors.slice(0, 2).join(' | '))
     await page.close()
 
+    // ---- storage that refuses writes ----
+    // Private browsing, a full quota, and sandboxed frames can all make
+    // localStorage.setItem throw while reading still works. Persist middleware
+    // writes during the state update, so an unguarded throw there escapes every
+    // set() and freezes the whole UI.
+    section('Unwritable storage')
+    const sandboxed = await browser.newPage({ viewport: { width: 1280, height: 800 } })
+    const sandboxErrors = []
+    sandboxed.on('pageerror', (error) => sandboxErrors.push(error.message))
+    await sandboxed.addInitScript(() => {
+      const real = window.localStorage
+      Object.defineProperty(window, 'localStorage', {
+        configurable: true,
+        get: () => ({
+          getItem: (key) => real.getItem(key),
+          setItem: () => {
+            throw new DOMException('QuotaExceededError', 'QuotaExceededError')
+          },
+          removeItem: () => {
+            throw new DOMException('denied', 'SecurityError')
+          },
+        }),
+      })
+    })
+
+    await sandboxed.goto(base, { waitUntil: 'networkidle' })
+    await sandboxed.waitForSelector('input[type="file"]', { state: 'attached' })
+    await sandboxed.setInputFiles('input[type="file"]', `${FIXTURES}script.pdf`)
+    let sandboxLoaded = true
+    try {
+      await sandboxed.waitForSelector('.prompter-stage', { timeout: 20_000 })
+    } catch {
+      sandboxLoaded = false
+    }
+    check('script still loads when writes are refused', sandboxLoaded)
+
+    if (sandboxLoaded) {
+      const readWpm = async () =>
+        Number(
+          (/(\d+) wpm/.exec((await sandboxed.textContent('.prompter-stage')) ?? '') ?? [])[1],
+        )
+      const startWpm = await readWpm()
+      await sandboxed.evaluate(() =>
+        document.querySelector('[aria-label="Faster"]')?.click(),
+      )
+      await sandboxed.waitForTimeout(250)
+      const nextWpm = await readWpm()
+      check(
+        'speed still changes when writes are refused',
+        nextWpm === startWpm + 5,
+        `${startWpm} -> ${nextWpm}`,
+      )
+    }
+    check('no errors escape from storage failures', sandboxErrors.length === 0, sandboxErrors[0] ?? '')
+    await sandboxed.close()
+
     // ---- responsive ----
     section('Responsive')
     for (const [label, width, height, expectedFont] of [

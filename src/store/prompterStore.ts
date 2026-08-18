@@ -1,5 +1,6 @@
 import { create } from 'zustand'
-import { persist } from 'zustand/middleware'
+import { createJSONStorage, persist } from 'zustand/middleware'
+import type { StateStorage } from 'zustand/middleware'
 
 export type Theme = 'dark' | 'light'
 export type FontChoice = 'sans' | 'serif'
@@ -143,6 +144,64 @@ const clamp = (value: number, min: number, max: number) =>
 const snap = (value: number, step: number) =>
   Math.round(value / step) * step
 
+/**
+ * Storage that can never break the app.
+ *
+ * `localStorage` is not always writable: private browsing, a full quota, and
+ * sandboxed or partitioned frames can all make `setItem` throw even when
+ * reading works. Persist middleware writes during the state update, so an
+ * exception there propagates out of every `set()` — the symptom is that
+ * nothing responds at all, because changing any setting throws before the
+ * store updates.
+ *
+ * Saving preferences is a convenience, so it degrades instead: writes are
+ * probed once up front, every operation is guarded, and an in-memory map backs
+ * the session so settings still work even when nothing can be written to disk.
+ */
+function createSafeStorage(): StateStorage {
+  const memory = new Map<string, string>()
+
+  const backing = (() => {
+    if (typeof window === 'undefined') return null
+    try {
+      const probe = '__prompter_storage_probe__'
+      window.localStorage.setItem(probe, probe)
+      window.localStorage.removeItem(probe)
+      return window.localStorage
+    } catch {
+      return null
+    }
+  })()
+
+  return {
+    getItem: (name) => {
+      try {
+        const stored = backing?.getItem(name)
+        if (stored != null) return stored
+      } catch {
+        // fall through to whatever this session has in memory
+      }
+      return memory.get(name) ?? null
+    },
+    setItem: (name, value) => {
+      memory.set(name, value)
+      try {
+        backing?.setItem(name, value)
+      } catch {
+        // Preferences stay in memory for this session; not worth surfacing.
+      }
+    },
+    removeItem: (name) => {
+      memory.delete(name)
+      try {
+        backing?.removeItem(name)
+      } catch {
+        // nothing to recover
+      }
+    },
+  }
+}
+
 export const usePrompterStore = create<PrompterState>()(
   persist(
     (set, get) => ({
@@ -245,6 +304,7 @@ export const usePrompterStore = create<PrompterState>()(
     {
       name: 'pdf-teleprompter-settings',
       version: 1,
+      storage: createJSONStorage(createSafeStorage),
       // Only user preferences survive a reload — never the document or playback state.
       partialize: (s): Settings => ({
         wpm: s.wpm,
