@@ -92,9 +92,22 @@ interface Actions {
 
 export type PrompterState = Settings & DocumentState & PlaybackState & Actions
 
+/**
+ * A 48px script is right on a laptop but leaves only a few words per line on a
+ * phone, so the starting size follows the screen. Only the default moves — once
+ * the reader picks a size it is theirs, and it persists.
+ */
+function defaultFontSize(): number {
+  if (typeof window === 'undefined') return LIMITS.fontSize.default
+  const width = window.innerWidth
+  if (width < 640) return 30
+  if (width < 1024) return 40
+  return LIMITS.fontSize.default
+}
+
 const defaultSettings: Settings = {
   wpm: LIMITS.wpm.default,
-  fontSize: LIMITS.fontSize.default,
+  fontSize: defaultFontSize(),
   lineHeight: LIMITS.lineHeight.default,
   readingWidth: LIMITS.readingWidth.default,
   theme: 'dark',

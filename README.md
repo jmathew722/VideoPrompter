@@ -23,6 +23,7 @@ Then open the printed URL and drop a PDF onto the page.
 | `npm run preview`   | Serve the production build locally                  |
 | `npm run typecheck` | TypeScript only                                     |
 | `npm run lint`      | oxlint                                              |
+| `npm run test:e2e`  | Build, then run the browser suite                   |
 | `npm run assets`    | Copy PDF.js CMaps into `public/` (runs on its own)  |
 
 ## Using it
@@ -96,6 +97,28 @@ Speed comes from the measured pixel height of the script divided by its word
 count, scaled by WPM — every word gets the same screen time regardless of
 window size, and changing speed mid-read takes effect on the next frame. When
 the layout reflows, the reader's place is preserved proportionally.
+
+## Tests
+
+`npm run test:e2e` builds the app, serves `dist/`, and drives it in Chromium
+with Playwright. It generates its own PDFs first (`tests/fixtures.mjs`) — a
+five-page script with a two-column spread, a running header, page-number
+footers, words hyphenated across line breaks, and a sentence spanning a page
+boundary — then asserts on extraction, scrolling, shortcuts, settings,
+persistence, the floating window, rejected files, and layout at phone, tablet
+and desktop widths.
+
+```bash
+npm run test:e2e
+
+# against an already-running server, e.g. the dev server
+BASE=http://localhost:5173/ node tests/e2e.mjs
+
+# when Chromium is not where Playwright expects it
+PLAYWRIGHT_CHROMIUM_PATH=/path/to/chrome npm run test:e2e
+```
+
+Playwright needs a browser once: `npx playwright install chromium`.
 
 ## Known limits
 

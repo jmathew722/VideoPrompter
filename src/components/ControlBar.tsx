@@ -36,7 +36,7 @@ function IconButton({ label, onClick, children, active, disabled }: IconButtonPr
       aria-label={label}
       aria-pressed={active}
       className={[
-        'flex size-9 items-center justify-center rounded-lg transition-colors duration-150 disabled:opacity-40',
+        'flex size-8 items-center justify-center rounded-lg transition-colors duration-150 disabled:opacity-40 sm:size-9',
         active
           ? 'bg-indigo-500/20 text-indigo-300'
           : 'text-zinc-300 hover:bg-white/10 hover:text-white',
@@ -49,6 +49,14 @@ function IconButton({ label, onClick, children, active, disabled }: IconButtonPr
 
 function Divider() {
   return <span className="mx-1 h-6 w-px bg-white/10" aria-hidden="true" />
+}
+
+/**
+ * Keeps the bar to a single row on phones. Everything hidden here is still
+ * reachable from the settings panel, which is one tap away.
+ */
+function WideOnly({ children }: { children: ReactNode }) {
+  return <span className="hidden sm:contents">{children}</span>
 }
 
 interface Props {
@@ -108,7 +116,7 @@ export function ControlBar({
         visible ? 'opacity-100' : 'pointer-events-none translate-y-3 opacity-0',
       ].join(' ')}
     >
-      <div className="flex max-w-full flex-wrap items-center justify-center gap-1 rounded-2xl border border-white/10 bg-zinc-900/85 px-3 py-2 shadow-2xl backdrop-blur-md">
+      <div className="flex max-w-full flex-wrap items-center justify-center gap-0.5 rounded-2xl border border-white/10 bg-zinc-900/85 px-2 py-2 sm:gap-1 sm:px-3 shadow-2xl backdrop-blur-md">
         <div className="mr-2 hidden min-w-0 flex-col pl-1 sm:flex">
           <span className="max-w-45 truncate text-xs font-medium text-zinc-200">
             {fileName ?? 'Script'}
@@ -151,7 +159,7 @@ export function ControlBar({
           >
             <Minus className="size-4" aria-hidden="true" />
           </IconButton>
-          <span className="w-16 text-center text-xs tabular-nums text-zinc-300">
+          <span className="w-14 text-center text-xs tabular-nums text-zinc-300 sm:w-16">
             {wpm} wpm
           </span>
           <IconButton
@@ -163,44 +171,46 @@ export function ControlBar({
           </IconButton>
         </div>
 
-        <Divider />
+        <WideOnly>
+          <Divider />
 
-        <div className="flex items-center gap-0.5" role="group" aria-label="Text size">
-          <IconButton
-            label="Smaller text"
-            onClick={() => adjustFontSize(-LIMITS.fontSize.step)}
-            disabled={fontSize <= LIMITS.fontSize.min}
-          >
-            <Type className="size-3.5" aria-hidden="true" />
+          <div className="flex items-center gap-0.5" role="group" aria-label="Text size">
+            <IconButton
+              label="Smaller text"
+              onClick={() => adjustFontSize(-LIMITS.fontSize.step)}
+              disabled={fontSize <= LIMITS.fontSize.min}
+            >
+              <Type className="size-3.5" aria-hidden="true" />
+            </IconButton>
+            <span className="w-10 text-center text-xs tabular-nums text-zinc-300">
+              {fontSize}
+            </span>
+            <IconButton
+              label="Larger text"
+              onClick={() => adjustFontSize(LIMITS.fontSize.step)}
+              disabled={fontSize >= LIMITS.fontSize.max}
+            >
+              <Type className="size-5" aria-hidden="true" />
+            </IconButton>
+          </div>
+
+          <Divider />
+
+          <IconButton label="Mirror (M)" onClick={toggleMirrorX} active={mirrorX}>
+            <FlipHorizontal2 className="size-4.5" aria-hidden="true" />
           </IconButton>
-          <span className="w-10 text-center text-xs tabular-nums text-zinc-300">
-            {fontSize}
-          </span>
+
           <IconButton
-            label="Larger text"
-            onClick={() => adjustFontSize(LIMITS.fontSize.step)}
-            disabled={fontSize >= LIMITS.fontSize.max}
+            label={theme === 'dark' ? 'Light theme' : 'Dark theme'}
+            onClick={toggleTheme}
           >
-            <Type className="size-5" aria-hidden="true" />
+            {theme === 'dark' ? (
+              <Sun className="size-4.5" aria-hidden="true" />
+            ) : (
+              <Moon className="size-4.5" aria-hidden="true" />
+            )}
           </IconButton>
-        </div>
-
-        <Divider />
-
-        <IconButton label="Mirror (M)" onClick={toggleMirrorX} active={mirrorX}>
-          <FlipHorizontal2 className="size-4.5" aria-hidden="true" />
-        </IconButton>
-
-        <IconButton
-          label={theme === 'dark' ? 'Light theme' : 'Dark theme'}
-          onClick={toggleTheme}
-        >
-          {theme === 'dark' ? (
-            <Sun className="size-4.5" aria-hidden="true" />
-          ) : (
-            <Moon className="size-4.5" aria-hidden="true" />
-          )}
-        </IconButton>
+        </WideOnly>
 
         {fullscreenSupported && (
           <IconButton
