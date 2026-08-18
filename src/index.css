@@ -1,0 +1,98 @@
+@import "tailwindcss";
+
+/* Class-based dark mode (dark-first: <html class="dark"> is the default). */
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --font-reading-sans: "Inter", "Segoe UI", system-ui, -apple-system, "Helvetica Neue",
+    Arial, sans-serif;
+  --font-reading-serif: "Iowan Old Style", "Charter", Georgia, "Times New Roman",
+    "Source Serif 4", serif;
+}
+
+@layer base {
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    margin: 0;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    overscroll-behavior: none;
+    @apply bg-white text-zinc-900;
+  }
+
+  .dark body {
+    @apply bg-zinc-950 text-zinc-50;
+  }
+
+  /* Consistent, visible focus treatment for keyboard users only. */
+  :focus-visible {
+    @apply outline-2 outline-offset-2 outline-indigo-500;
+  }
+
+  ::selection {
+    @apply bg-indigo-500/30;
+  }
+}
+
+@layer components {
+  /* The teleprompter reading surface: maximum contrast, minimum chrome. */
+  .prompter-stage {
+    background: #ffffff;
+    color: #0a0a0b;
+  }
+
+  .dark .prompter-stage {
+    background: #050506;
+    color: #fafafa;
+  }
+
+  /* Hides the native scrollbar on the prompter viewport; scrolling is driven
+     by the requestAnimationFrame engine, not by the browser. */
+  .no-scrollbar {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Range inputs styled to match the dark-first control surface. */
+  .range-input {
+    @apply h-1.5 w-full cursor-pointer appearance-none rounded-full bg-zinc-300 dark:bg-zinc-700;
+  }
+
+  .range-input::-webkit-slider-thumb {
+    @apply h-4 w-4 appearance-none rounded-full bg-indigo-500 shadow-md transition-transform;
+    border: 2px solid white;
+  }
+
+  .dark .range-input::-webkit-slider-thumb {
+    border-color: #18181b;
+  }
+
+  .range-input::-webkit-slider-thumb:hover {
+    transform: scale(1.15);
+  }
+
+  .range-input::-moz-range-thumb {
+    @apply h-4 w-4 rounded-full border-0 bg-indigo-500 shadow-md;
+  }
+}
+
+@layer utilities {
+  /* Motion-sensitive users: kill decorative transitions, keep the prompter usable. */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
