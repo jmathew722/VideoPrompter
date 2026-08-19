@@ -92,12 +92,23 @@ hyphenated words rejoined, running headers and page numbers dropped, and
 sentences that run across a page break stitched back together.
 
 **Scrolling** (`hooks/useAutoScroll.ts`) runs a `requestAnimationFrame` loop
-that advances an offset by `pixelsPerSecond × deltaTime` and writes it to the
-DOM as a `translate3d`, so it is frame-rate independent and compositor-driven.
-Speed comes from the measured pixel height of the script divided by its word
-count, scaled by WPM — every word gets the same screen time regardless of
-window size, and changing speed mid-read takes effect on the next frame. When
-the layout reflows, the reader's place is preserved proportionally.
+that advances how many words have been read by `wpm / 60 × deltaTime`, converts
+that to a pixel offset, and writes it to the DOM as a `translate3d` — frame-rate
+independent and compositor-driven.
+
+It integrates *words* rather than pixels on purpose. A single pixels-per-second
+figure for the whole script assumes words are spread evenly down the page, but a
+three-word heading fills a line just as a dozen words of prose do. At a constant
+pixel speed that heading crosses the eye-line at well under the selected pace
+while a dense paragraph races past it — measured at 59–159 wpm for a selected
+140 on a five-page script, even though the total time was exactly right.
+
+So the engine maps pixel position to word position using the rendered paragraph
+geometry (each paragraph owns the space down to the next, so the gaps count
+too) and drives the word count directly. The rate crossing the eye-line matches
+the selected WPM everywhere, not just on average, and the scroll speed varies
+smoothly to keep it there. Word position also survives reflow: changing the font
+size or column width keeps the reader on the same word.
 
 ## One-file build
 

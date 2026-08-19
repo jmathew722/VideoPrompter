@@ -139,17 +139,78 @@ async function run() {
     await page.waitForTimeout(900)
     check('pause holds position', (await offsetOf(page)) === paused)
 
-    const slow = (before - after) / 1.5
-    await page.keyboard.press('ArrowUp')
-    await page.keyboard.press('ArrowUp')
+    // Pixels per second is no longer constant down the script — the engine
+    // varies it so the WORD rate stays put — so speed is compared in words.
+    // The paragraph geometry is read independently of the implementation.
+    const geometry = await page.evaluate(() => {
+      const text = document.querySelector('.prompter-stage p').parentElement
+      const paras = Array.from(text.querySelectorAll('p'))
+      const base = text.offsetTop
+      const height = text.scrollHeight
+      const tops = paras.map((p) => p.offsetTop - base)
+      const counts = paras.map(
+        (p) => ((p.textContent ?? '').trim().match(/\S+/g) ?? []).length,
+      )
+      const spans = tops.map((t, i) => (i + 1 < tops.length ? tops[i + 1] : height) - t)
+      const cumulative = []
+      let running = 0
+      for (const c of counts) {
+        cumulative.push(running)
+        running += c
+      }
+      return { tops, spans, counts, cumulative, totalWords: running }
+    })
+
+    const wordsAt = (y) => {
+      let i = 0
+      while (i + 1 < geometry.tops.length && geometry.tops[i + 1] <= y) i++
+      const within =
+        geometry.spans[i] > 0
+          ? Math.min(Math.max((y - geometry.tops[i]) / geometry.spans[i], 0), 1)
+          : 0
+      return geometry.cumulative[i] + within * geometry.counts[i]
+    }
+
+    /** Words per minute actually crossing the eye-line, sampled live. */
+    async function measureWordRate(seconds) {
+      const start = { t: Date.now(), words: wordsAt(-(await offsetOf(page))) }
+      await page.waitForTimeout(seconds * 1000)
+      const end = { t: Date.now(), words: wordsAt(-(await offsetOf(page))) }
+      return ((end.words - start.words) / ((end.t - start.t) / 1000)) * 60
+    }
+
+    await page.keyboard.press('KeyR')
+    await page.waitForTimeout(150)
     await page.keyboard.press('Space')
     await page.waitForTimeout(4200)
-    const fastFrom = await offsetOf(page)
-    await page.waitForTimeout(1500)
-    const fastTo = await offsetOf(page)
+    const rateAt140 = await measureWordRate(4)
+    check(
+      'delivers the selected 140 wpm',
+      Math.abs(rateAt140 - 140) / 140 < 0.05,
+      `${rateAt140.toFixed(1)} wpm`,
+    )
+
+    // The worst case for a constant pixel speed is a short heading, which holds
+    // far fewer words per pixel than a dense paragraph.
+    const paceSamples = []
+    for (let i = 0; i < 5; i++) paceSamples.push(await measureWordRate(3))
+    const worstDrift = Math.max(...paceSamples.map((r) => Math.abs(r - 140) / 140))
+    check(
+      'pace holds steady across headings and paragraphs',
+      worstDrift < 0.06,
+      `${paceSamples.map((r) => r.toFixed(0)).join(', ')} wpm (worst ${(worstDrift * 100).toFixed(1)}%)`,
+    )
+
+    await page.keyboard.press('ArrowUp')
+    await page.keyboard.press('ArrowUp')
+    await page.waitForTimeout(200)
+    const rateAt150 = await measureWordRate(4)
+    check(
+      'raising wpm raises the delivered rate',
+      Math.abs(rateAt150 - 150) / 150 < 0.05,
+      `${rateAt150.toFixed(1)} wpm at a selected 150`,
+    )
     await page.keyboard.press('Space')
-    const fast = (fastFrom - fastTo) / 1.5
-    check('raising wpm speeds up scrolling', fast > slow, `${slow.toFixed(1)} -> ${fast.toFixed(1)} px/s`)
 
     await page.mouse.move(640, 400)
     await page.mouse.wheel(0, 400)
