@@ -269,8 +269,8 @@ async function run() {
       .getByRole('slider', { name: 'Reading speed' })
       .evaluate((el) => ({ min: el.min, max: el.max, step: el.step }))
     check(
-      'speed ranges 60-400 in steps of 5',
-      speedRange.min === '60' && speedRange.max === '400' && speedRange.step === '5',
+      'speed ranges 60-1000 in steps of 5',
+      speedRange.min === '60' && speedRange.max === '1000' && speedRange.step === '5',
       JSON.stringify(speedRange),
     )
 
