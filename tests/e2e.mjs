@@ -204,6 +204,15 @@ async function run() {
     await page.waitForTimeout(300)
     check('panel opens', await page.getByLabel('Prompter settings').isVisible())
 
+    const speedRange = await page
+      .getByRole('slider', { name: 'Reading speed' })
+      .evaluate((el) => ({ min: el.min, max: el.max, step: el.step }))
+    check(
+      'speed ranges 60-400 in steps of 5',
+      speedRange.min === '60' && speedRange.max === '400' && speedRange.step === '5',
+      JSON.stringify(speedRange),
+    )
+
     await page.getByRole('slider', { name: 'Reading width' }).fill('600')
     await page.waitForTimeout(200)
     const columnWidth = await page.$eval('.prompter-stage p', (el) =>

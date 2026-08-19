@@ -17,7 +17,7 @@ export interface ScrollControls {
 }
 
 export const LIMITS = {
-  wpm: { min: 60, max: 250, step: 5, default: 140 },
+  wpm: { min: 60, max: 400, step: 5, default: 140 },
   fontSize: { min: 24, max: 120, step: 2, default: 48 },
   lineHeight: { min: 1.1, max: 2.4, step: 0.05, default: 1.5 },
   readingWidth: { min: 480, max: 1600, step: 20, default: 900 },
